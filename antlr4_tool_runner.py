@@ -5,7 +5,7 @@ import re
 import subprocess
 from shutil import which
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from urllib import error
 import json
 
@@ -13,6 +13,19 @@ import jdk  # requires install-jdk package
 
 mvn_repo: str
 homedir: Path
+
+# https://www.zenrows.com/blog/urllib-headers
+http_headers = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-Ch-Ua": "\"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
+    "Referer":"https://www.google.com/",
+    "Sec-Ch-Ua-Platform": "\"Windows\"",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "cross-site",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+}
 
 
 def initialize_paths():
@@ -22,9 +35,12 @@ def initialize_paths():
 
 
 def latest_version():
+    request = Request(
+        url="https://central.sonatype.com/solrsearch/select?q=a:antlr4-master+g:org.antlr",
+        headers=http_headers,
+    )
     try:
-        with urlopen("https://central.sonatype.com/solrsearch/select?q=a:antlr4-master+g:org.antlr",
-                     timeout=10) as response:
+        with urlopen(request, timeout=10) as response:
             s = response.read().decode("UTF-8")
             searchResult = json.loads(s)['response']
             # searchResult = s.json()['response']
@@ -53,9 +69,12 @@ def antlr4_jar(version):
 
 def download_antlr4(jar, version):
     s = None
+    request = Request(
+        url=f"https://repo1.maven.org/maven2/org/antlr/antlr4/{version}/antlr4-{version}-complete.jar",
+        headers=http_headers,
+    )
     try:
-        with urlopen(f"https://repo1.maven.org/maven2/org/antlr/antlr4/{version}/antlr4-{version}-complete.jar",
-                     timeout=60) as response:
+        with urlopen(request, timeout=60) as response:
             print(f"Downloading antlr4-{version}-complete.jar")
             os.makedirs(os.path.join(mvn_repo, version), exist_ok=True)
             s = response.read()
